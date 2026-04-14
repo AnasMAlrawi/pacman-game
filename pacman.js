@@ -19,25 +19,22 @@ let lastGhostMove =0;
 
 
 
-// Create health counter (3 starting lives, max 5)
-const pacmanHealth = new HealthCounter(3, 5);
+import {movePacman, keyToDirection, resolveDirection,getNextPosition,applyMove} from "./models-movement/pacman-movement.js";
+import { updatePacmanPosition } from "./models-movement/update-pacman-position.js";
+import { handleDeath } from "./models-health/handle-death.js";
+import { resetPositions } from "./game-map/reset-positions.js";
+import { updateGhosts } from "./models-movement/update-ghost-positions.js";
+import { draw } from "./game-map/draw.js";
+import { gV } from "./game-map/Global-Variables/global-variables.js";
 
-// Create UI with hearts display
-const healthUI = new HealthCounterUI(pacmanHealth, "health-display", {
-  style: "hearts",
-  animateDamage: true,
-});
-
-let currentDirection = { row: 0, col: 0 };
-let nextDirection = { row: 0, col: 0 };
 
 document.addEventListener("keydown", (e) => {
   const dir = keyToDirection(e.key);
-  if (dir) nextDirection = dir;
+  if (dir) gV.nextDirection = dir;
 });
 
 function gameLoop(currentTime) {
-  if (!isGameOver) {
+  if (!gV.isGameOver) {
     window.requestAnimationFrame(gameLoop);
   }
 
@@ -114,95 +111,39 @@ function updateGhosts() {
       ghost.lastDirection = result.direction;
     }
   }
-}
 
-function draw() {
-  drawBoard(grid);
-
-  const pacmanElement = document.querySelector(".mans");
-
-  if (pacmanElement) {
-    if (currentDirection.col === 1) {
-      pacmanElement.style.transform = "rotate(0deg)"; // Facing Right (Default)
-    } else if (currentDirection.col === -1) {
-      pacmanElement.style.transform = "rotate(180deg)"; // Facing Left
-    } else if (currentDirection.row === 1) {
-      pacmanElement.style.transform = "rotate(90deg)"; // Facing Down
-    } else if (currentDirection.row === -1) {
-      pacmanElement.style.transform = "rotate(270deg)"; // Facing Up
-    }
+  // GHOST TIMER
+  if ((currentTime - gV.lastGhostMove) / 1000 >= 1 / gV.ghostSpeed) {
+    updateGhosts(gV);
+    gV.lastGhostMove = currentTime;
   }
 }
 
 // Handle ghost collisions
 function handleGhostCollision(pacman, ghosts) {
   if (pacmanGhostCollision(pacman, ghosts)) {
-    pacmanHealth.takeDamage(1);
-    healthUI.animateDamage();
-    healthUI.update();
+    gV.pacmanHealth.takeDamage(1);
+    gV.healthUI.animateDamage();
+    gV.healthUI.update();
 
-    if (!pacmanHealth.isAlive()) {
-      endGame();
+    if (!gV.pacmanHealth.isAlive()) {
+      gV.isGameOver = true;
     }
   }
 }
 
-// Gabriel will call this function when a ghost touches Pac-Man
-function handleDeath() {
-  pacmanHealth.takeDamage(1);
-  healthUI.animateDamage();
-  healthUI.update();
-  alert("You died!"); //temp popup to know when dead
 
-  if (pacmanHealth.isAlive()) {
-    resetPositions();
-    return;
-  }
 
-  isGameOver = true;
-  resetPositions();
-  // Cameron can plug in his UI code here later, e.g., showGameOverScreen()
-}
-
-// Resets entities to their starting spots without resetting the score/coins
-function resetPositions() {
-  // 1. Clear Pac-Man's current spot on the grid
-  grid[pacMan.row][pacMan.col] = 0;
-
-  // Delete ghosts from current position on the grid
-  ghosts.forEach((ghost) => {
-    grid[ghost.row][ghost.col] = 0;
-  });
-
-  // 2. Put Pac-Man back at the start
-  pacMan.row = 1;
-  pacMan.col = 1;
-  grid[pacMan.row][pacMan.col] = 3;
-
-  // 3. Reset the direction so he doesn't immediately run into a wall
-  currentDirection = { row: 0, col: 0 };
-  nextDirection = { row: 0, col: 0 };
-
-  // 4. Reset the ghosts to the center box
-  resetGhostToCenter();
-}
-
-function resetGhostToCenter() {
-  for (let i = 0; i < ghosts.length; i++) {
-    ghosts[i].row = ghostStartPositions[i].row;
-    ghosts[i].col = ghostStartPositions[i].col;
-    grid[ghosts[i].row][ghosts[i].col] = 2;
-  }
-}
 
 function restartGame() {
-  pacmanHealth.reset(3);
-  healthUI.update();
-  isGameOver = false;
+  gV.pacmanHealth.reset(3);
+  gV.healthUI.update();
+  gV.isGameOver = false;
 
   // Reset the map back to its original state (Victor's area)
   // For now, we will just reset positions
-  resetPositions();
+  resetPositions(gV);
+  
 
   // Kick the loop back off!
   window.requestAnimationFrame(gameLoop);
