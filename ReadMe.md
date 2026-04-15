@@ -27,4 +27,4 @@ Contributors names and contact info
 [Sabrina Karim](https://github.com/pdudette151)  
 [Cameron](https://github.com/AKCameron87)  
 [Jason](https://github.com/Upserge)  
-  
+[Victor Quintero](https://github.com/victorjq)  
